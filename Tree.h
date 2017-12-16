@@ -1,9 +1,12 @@
 //
 // Created by webve on 12.12.2017.
 //
-
+#define TEST
 #ifndef LABA2BST_TREE_H
 #define LABA2BST_TREE_H
+
+
+#pragma once
 
 #include <iostream>
 #include "stack"
@@ -17,7 +20,6 @@ class Tree
         Data value;
         Node* left;
         Node* right;
-        int levelNode;
         Node(Key k, Data d) {
             key = k;
             value = d;
@@ -44,9 +46,11 @@ public:
     void put(Key k, Data d);
     void remove(Key key);
     void print();
+    Data search(Key key);
+    int readings = 0;
 
     class Iterator {
-        Tree* pointer;
+        Node* pointer;
         Node* current;
         std::stack<Node*>* stack;
         std::stack<Node*>* back_stack;
@@ -55,7 +59,7 @@ public:
     public:
         int level = 0;
         explicit Iterator(Tree* tree) {
-            pointer = tree;
+            pointer = tree->root;
             current = tree->root;
             stack = new std::stack<Node*>();
             back_stack = new std::stack<Node*>();
@@ -63,6 +67,7 @@ public:
         };
         explicit Iterator(Node * node){
             current = node;
+            pointer = node;
             stack = new std::stack<Node*>();
             back_stack = new std::stack<Node*>();
             stack->push(current);
@@ -77,7 +82,7 @@ public:
             delete stack;
             level = 0;
             stack = new std::stack<Node*>();
-            current = pointer->root;
+            current = pointer;
                 while (current->left != NULL) {
                     stack->push(current);
                     current = current->left;
@@ -87,7 +92,7 @@ public:
         }
         //установить итератор в конец
         Node* end(){
-            current = pointer->root;
+            current = pointer;
             while (current->right != NULL) {
                 current = current->right;
                 level++;
@@ -137,6 +142,7 @@ public:
                     level++;
                 }
                 else {
+                    if (!stack->empty())
                     current = stack->top();
                     level--;
                 }
@@ -157,6 +163,9 @@ public:
 template<class Key, class Data>
 Tree<Key, Data>::Tree()
 {
+#ifdef TEST
+    readings = 0;
+#endif
     root = NULL;
 }
 
@@ -175,8 +184,8 @@ int Tree<Key, Data>::getSize()
 template<class Key, class Data>
 void Tree<Key, Data>::clear()
 {
-    Iterator iterator(this);
     while (!this->isEmpty()){
+        Iterator iterator(this);
         iterator.begin();
         remove(iterator.getNote()->key);
     }
@@ -189,18 +198,24 @@ bool Tree<Key, Data>::isEmpty()
 }
 //Возращает значение по заданому ключу
 template<class Key, class Data>
-Data Tree<Key, Data>::get(Key key)
+Data Tree<Key, Data>::get(Key k)
 {
-    return Data();
+    return search(k);
 }
 
 //добавление данных с заданным ключем
 template<class Key, class Data>
 void Tree<Key, Data>::put(Key k, Data d)
 {
+#ifdef TEST
+    readings = 0;
+#endif
     Node * new_node = new Node(k, d);
-    if (root == NULL){
+    if (size == 0){
         root = new_node;
+#ifdef TEST
+        readings++;
+#endif
     }
     else
     {
@@ -214,20 +229,28 @@ void Tree<Key, Data>::put(Key k, Data d)
                 break;
             }
             else
-            if (current_note->key > k)
-                if (current_note->left == NULL) {
-                    current_note->left = new_node;
+                if (current_note->key > k)
+                    if (current_note->left == NULL) {
+                        current_note->left = new_node;
+                        break;
+                    }
+                    else {
+                        current_note = current_note->left;
+#ifdef TEST
+                        readings++;
+#endif
+                    }
+                else
+                if (current_note->right == NULL) {
+                    current_note->right = new_node;
                     break;
                 }
-                else
-                    current_note = current_note->left;
-            else
-            if (current_note->right == NULL) {
-                current_note->right = new_node;
-                break;
-            }
-            else
-                current_note = current_note->right;
+                else {
+                    current_note = current_note->right;
+#ifdef TEST
+                    readings++;
+#endif
+                }
         }
     }
     size++;
@@ -236,6 +259,12 @@ void Tree<Key, Data>::put(Key k, Data d)
 template<class Key, class Data>
 void Tree<Key, Data>::remove(Key key)
 {
+#ifdef TEST
+    readings = 0;
+#endif
+    if(key == 3986){
+        int rec = 0;
+    }
     Node * forBack = root;
     Node * forDelete = root;
     while (forDelete->key != key ){
@@ -244,56 +273,67 @@ void Tree<Key, Data>::remove(Key key)
             forDelete = forDelete->left;
         else
             forDelete = forDelete->right;
+#ifdef TEST
+        readings++;
+#endif
         if (forDelete == NULL) {
             std::cout << "Key not found" << std::endl;
             return;
         }
     }
-    if (forDelete == root){
-        Iterator iterator(forDelete->right);
-        Node * forChange = iterator.begin();
-//        if (iterator.getNote()->left != NULL && iterator.getNote()->right != NULL)
-//            while (iterator.next()->left != NULL);
-        iterator.next();
-        iterator.getNote()->left = forDelete ->left;
-        iterator.getNote()->right = forDelete->right;
-        root = iterator.getNote();
-
-    } else if (forDelete->left == NULL && forDelete->right == NULL) {
-        if (forBack->right == forDelete)
+    if (forDelete->left == NULL && forDelete->right == NULL)
+        if(forBack->left == forDelete)
+            forBack->left = NULL;
+        else
             forBack->right = NULL;
+    else if (forDelete->left == NULL && forDelete->right != NULL) {
+        if(forBack->left == forDelete)
+            forBack->left = forDelete->right;
         else
-            forBack->left =NULL;
-    } else if (forDelete->right !=NULL && forDelete->left == NULL){
-        forBack->right = forDelete->right;
-        if (forBack->right == forDelete)
-            forBack->right = NULL;
-        else
-            forBack->left =NULL;
-    } else if (forDelete->left != NULL && forDelete->right == NULL ){
-        forBack->left = forDelete->left;
-        if (forBack->right == forDelete)
-            forBack->right = NULL;
-        else
-            forBack->left =NULL;
-    } else {
-        Iterator iterator(forDelete->right);
-        if (iterator.getNote()->left != NULL && iterator.getNote()->right != NULL)
-            while (iterator.next()->left != NULL);
-        if (forBack->left == forDelete)
-            forBack->left = iterator.getNote();
-        else
-            forBack->right = iterator.getNote();
-        if (forDelete->left == iterator.getNote()->left){
-            iterator.getNote()->left = NULL;
-            forDelete->left = NULL;
-        } else if (forDelete->right == iterator.getNote()->right)
-            iterator.getNote()->right = NULL;
-            forDelete->right = NULL;
-        iterator.getNote()->left = forDelete->left;
-        iterator.getNote()->right = forDelete->right;
-        delete forDelete;
+            forBack->right = forDelete->right;
+        if (forDelete == root){
+            root =  forDelete->right;
+        }
     }
+    else if (forDelete->right == NULL && forDelete->left != NULL) {
+        if(forBack->left == forDelete)
+            forBack->left = forDelete->left;
+        else
+            forBack->right = forDelete->left;
+        if (forDelete == root){
+            root =  forDelete->left;
+        }
+    }
+    else {
+        Iterator iterator(forDelete->right);
+        Node *forChange;
+        if (iterator.getNote()->right == NULL && iterator.getNote()->left == NULL) {
+            forChange = forDelete->right;
+            forDelete->right = NULL;
+            if (forBack->left == forDelete)
+                forBack->left = forChange;
+            else
+                forBack->right = forChange;
+        } else {
+            forChange = iterator.begin();
+            Node *children = NULL;
+            iterator.next();
+            if (iterator.getNote()->left != forChange && iterator.getNote()->right != forChange) {
+                children = iterator.getNote();
+                do{
+                    iterator.next();
+                }
+                while (iterator.getNote()->left != forChange &&  iterator.getNote()->left !=NULL);
+            }
+            iterator.getNote()->left = children;
+        }
+        forChange->left = forDelete->left;
+        forChange->right = forDelete->right;
+        if (forDelete == root) {
+            root = forChange;
+        }
+    }
+
     delete forDelete;
     size--;
     return;
@@ -318,6 +358,27 @@ void Tree<Key, Data>::print()
         std::cout << "\t";
     std::cout << iterator.getNote()->key << std::endl;
 }
+template<class Key, class Data>
+Data Tree<Key, Data>::search(Key key){
+#ifdef TEST
+    readings = 0;
+#endif
+    Node * forGet = root;
+    while (forGet->key != key ){
+        if (key < forGet->key)
+            forGet = forGet->left;
+        else
+            forGet = forGet->right;
+#ifdef TEST
+        readings++;
+#endif
+        if (forGet == NULL) {
+            std::cout << "Key not found" << std::endl;
+            return NULL;
+        }
+    }
+    return forGet->value;
+};
 
 
 #endif //LABA2BST_TREE_H
